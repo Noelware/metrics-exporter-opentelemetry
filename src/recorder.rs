@@ -211,19 +211,20 @@ mod tests {
 
     #[test]
     fn standard_usage() {
-        let (provider, recorder) = Recorder::builder("my-app")
-            .with_meter_provider(|builder| {
-                let exporter = opentelemetry_stdout::MetricExporterBuilder::default()
-                    .with_temporality(Temporality::Delta)
-                    .build();
-                builder.with_periodic_exporter(exporter)
-            })
+        let exporter = opentelemetry_stdout::MetricExporterBuilder::default()
+            .with_temporality(Temporality::Cumulative)
             .build();
 
-        global::set_meter_provider(provider);
+        let (provider, recorder) = Recorder::builder("my-app")
+            .with_meter_provider(|builder| builder.with_periodic_exporter(exporter))
+            .build();
+
+        global::set_meter_provider(provider.clone());
         metrics::set_global_recorder(recorder).unwrap();
 
         let counter = metrics::counter!("my-counter");
         counter.increment(1);
+
+        provider.force_flush().unwrap();
     }
 }
