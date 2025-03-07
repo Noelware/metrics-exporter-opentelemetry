@@ -69,9 +69,9 @@ jobs:
               with:
                 tool: cargo-nextest
 
-            - run: cargo build --workspace --all-features
-            - run: cargo nextest run --workspace --all-features
-            - run: cargo test --doc --workspace --all-features
+            - run: cargo build --all-features
+            - run: cargo nextest run --all-features --success-output=final
+            - run: cargo test --doc --all-features
     clippy:
         name: Clippy
         runs-on: ubuntu-latest
