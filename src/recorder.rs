@@ -19,22 +19,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//! # 🐻‍❄️🎈 `metrics-exporter-opentelemetry`
-//!
-//! The **metrics-exporter-opentelemetry** crate is a [`metrics`] exporter over
-//! OpenTelemetry's **metrics** API.
-//!
-//! ## Usage
-//! **TODO: this**
-//!
-//! [`metrics`]: https://crates.io/crates/metrics
+use metrics::{Key, KeyName, Metadata, SharedString, Unit};
 
-#![cfg_attr(any(noeldoc, docsrs), feature(doc_cfg))]
-#![doc(html_logo_url = "https://cdn.floofy.dev/images/trans.png")]
-#![doc(html_favicon_url = "https://cdn.floofy.dev/images/trans.png")]
+/// A standard recorder that implements [`metrics::Recorder`].
+pub struct Recorder;
 
-mod error;
-mod recorder;
+impl metrics::Recorder for Recorder {
+    fn describe_counter(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {
+        todo!()
+    }
 
-pub use error::*;
-pub use recorder::*;
+    fn describe_gauge(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {
+        todo!()
+    }
+
+    fn describe_histogram(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {
+        todo!()
+    }
+
+    fn register_counter(&self, _key: &Key, _metadata: &Metadata<'_>) -> metrics::Counter {
+        todo!()
+    }
+
+    fn register_gauge(&self, _key: &Key, _metadata: &Metadata<'_>) -> metrics::Gauge {
+        todo!()
+    }
+
+    fn register_histogram(&self, _key: &Key, _metadata: &Metadata<'_>) -> metrics::Histogram {
+        todo!()
+    }
+}

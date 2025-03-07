@@ -69,12 +69,8 @@ jobs:
               with:
                 tool: cargo-nextest
 
-            # On Windows, we'll also need nasm for use with BoringSSL via aws-lc-sys.
-            - uses: ilammy/setup-nasm@v1
-              if: matrix.runner == 'windows-latest'
-
             - run: cargo build --workspace --all-features
-            - run: cargo nextest run --workspace --all-features
+            - run: cargo nextest run --workspace --all-features --no-tests
             - run: cargo test --doc --workspace --all-features
     clippy:
         name: Clippy

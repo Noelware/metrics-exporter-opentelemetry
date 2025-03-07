@@ -23,8 +23,21 @@
 name = "metrics-exporter-opentelemetry"
 description = "🐻‍❄️🎈 A `metrics` exporter over OpenTelemetry"
 version = "0.1.0"
-repository = "https://github.com/Noelware/remi-rs"
+repository = "https://github.com/Noelware/metrics-exporter-opentelemetry"
 license = "MIT"
 edition = "2021"
-rust-version = "1.71"
+rust-version = "1.75"
 authors = ["Noel Towa <cutie@floofy.dev>"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(noeldoc)'] }
+
+[dependencies]
+derive_more = { version = "2.0.1", features = ["display", "from"] }
+metrics = "0.24.1"
+opentelemetry = { version = "0.28.0", default-features = false, features = [
+    "metrics",
+] }
+opentelemetry_sdk = { version = "0.28.0", default-features = false, features = [
+    "metrics",
+] }

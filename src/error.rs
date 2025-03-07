@@ -19,22 +19,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//! # 🐻‍❄️🎈 `metrics-exporter-opentelemetry`
-//!
-//! The **metrics-exporter-opentelemetry** crate is a [`metrics`] exporter over
-//! OpenTelemetry's **metrics** API.
-//!
-//! ## Usage
-//! **TODO: this**
-//!
-//! [`metrics`]: https://crates.io/crates/metrics
+pub type Result<T> = std::result::Result<T, Error>;
 
-#![cfg_attr(any(noeldoc, docsrs), feature(doc_cfg))]
-#![doc(html_logo_url = "https://cdn.floofy.dev/images/trans.png")]
-#![doc(html_favicon_url = "https://cdn.floofy.dev/images/trans.png")]
+/// A error type that occurred.
+#[derive(Debug, derive_more::Display, derive_more::From)]
+pub enum Error {
+    /// *Called from [`Recorder::install_global`]*: Failed to set
+    /// a global recorder as one is already initialised.
+    ///
+    /// [`Recorder::install_global`]: Recorder.html
+    SetRecorder(metrics::SetRecorderError<crate::Recorder>),
+}
 
-mod error;
-mod recorder;
-
-pub use error::*;
-pub use recorder::*;
+impl std::error::Error for Error {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        match self {
+            Self::SetRecorder(err) => Some(err),
+        }
+    }
+}
