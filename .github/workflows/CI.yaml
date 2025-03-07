@@ -70,7 +70,7 @@ jobs:
                 tool: cargo-nextest
 
             - run: cargo build --workspace --all-features
-            - run: cargo nextest run --workspace --all-features --no-tests
+            - run: cargo nextest run --workspace --all-features
             - run: cargo test --doc --workspace --all-features
     clippy:
         name: Clippy

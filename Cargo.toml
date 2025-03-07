@@ -41,3 +41,8 @@ opentelemetry = { version = "0.28.0", default-features = false, features = [
 opentelemetry_sdk = { version = "0.28.0", default-features = false, features = [
     "metrics",
 ] }
+
+[dev-dependencies]
+opentelemetry-stdout = { version = "0.28.0", default-features = false, features = [
+    "metrics",
+] }
