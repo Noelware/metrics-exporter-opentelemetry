@@ -27,7 +27,7 @@ pub enum Error {
     /// *Called from [`Recorder::install_global`]*: Failed to set
     /// a global recorder as one is already initialised.
     ///
-    /// [`Recorder::install_global`]: Recorder.html
+    /// [`Recorder::install_global`]: struct.Recorder.html#method.install_global
     SetRecorder(metrics::SetRecorderError<crate::Recorder>),
 }
 

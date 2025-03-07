@@ -109,6 +109,11 @@ impl Recorder {
             scope: InstrumentationScope::builder(name.into()),
         }
     }
+
+    /// Creates a [`Recorder`] with an already established [`Meter`].
+    pub fn with_meter(meter: Meter) -> Self {
+        Recorder { meter }
+    }
 }
 
 impl Deref for Recorder {
