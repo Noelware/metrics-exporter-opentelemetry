@@ -38,17 +38,6 @@ pub struct Builder {
 impl Builder {
     /// Runs the closure (`f`) to modify the [`MeterProviderBuilder`] to build a
     /// [`MeterProvider`](opentelemetry::metrics::MeterProvider).
-    ///
-    /// ## Example
-    /// ```
-    /// # use metrics_exporter_opentelemetry::Recorder;
-    /// #
-    /// let recorder = Recorder::builder("my-app")
-    ///     .with_meter_provider(|builder| {
-    ///         // modify `builder` to your liking
-    ///     })
-    ///     .build();
-    /// ```
     pub fn with_meter_provider(mut self, f: impl FnOnce(MeterProviderBuilder) -> MeterProviderBuilder) -> Self {
         self.builder = f(self.builder);
         self
@@ -56,17 +45,6 @@ impl Builder {
 
     /// Modify the [`InstrumentationScope`] to provide additional metadata from the
     /// closure (`f`).
-    ///
-    /// ## Example
-    /// ```
-    /// # use metrics_exporter_opentelemetry::Recorder;
-    /// #
-    /// let (_, recorder) = Recorder::builder("my-app")
-    ///     .with_instrumentation_scope(|builder| {
-    ///         // modify `builder` to your liking
-    ///     })
-    ///     .build();
-    /// ```
     pub fn with_instrumentation_scope(
         mut self,
         f: impl FnOnce(InstrumentationScopeBuilder) -> InstrumentationScopeBuilder,
