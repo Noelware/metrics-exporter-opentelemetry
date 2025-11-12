@@ -4,13 +4,6 @@
 The **metrics-exporter-opentelemetry** crate is a [`metrics`] exporter over OpenTelemetry's **metrics** API.
 
 ## Warnings
-- The crate doesn't support the following methods from [`metrics`]:
-    - [`Counter::absolute`](https://docs.rs/metrics/latest/metrics/struct.Counter.html#method.absolute) - OpenTelemetry doesn't keep track of the value inside of a counter.
-
-    - [`Gauge::increment`](https://docs.rs/metrics/latest/metrics/struct.Gauge.html#method.increment), [`Gauge::decrement`](https://docs.rs/metrics/latest/metrics/struct.Gauge.html#method.decrement) - OpenTelemetry doesn't keep track of the value inside of a gauge.
-
-    - [`Histogram::record_many`](https://docs.rs/metrics/latest/metrics/struct.Histogram.html#method.record_many) - OpenTelemetry doesn't support recording multiple histogram points.
-
 - The crate provide no-op implementations of the `metrics::Recorder::describe_*` as we can't modify a constructed counter/gauge/histogram from `metrics::Recorder::register_*`. The SDK keeps track of it but is internal and isn't able to be accessed.
 
 ## Usage
