@@ -26,7 +26,14 @@ use opentelemetry::{
     InstrumentationScope, InstrumentationScopeBuilder, KeyValue,
 };
 use opentelemetry_sdk::metrics::{MeterProviderBuilder, SdkMeterProvider};
-use std::{borrow::Cow, ops::Deref, sync::Arc};
+use std::{
+    borrow::Cow,
+    ops::Deref,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
 
 /// A builder for constructing a [`Recorder`].
 #[derive(Debug)]
@@ -144,7 +151,11 @@ impl metrics::Recorder for Recorder {
             .map(|label| KeyValue::new(label.key().to_owned(), label.value().to_owned()))
             .collect();
 
-        Counter::from_arc(Arc::new(WrappedCounter { counter, labels }))
+        Counter::from_arc(Arc::new(WrappedCounter {
+            counter,
+            labels,
+            value: AtomicU64::new(0),
+        }))
     }
 
     fn register_gauge(&self, key: &Key, _metadata: &Metadata<'_>) -> Gauge {
@@ -154,7 +165,11 @@ impl metrics::Recorder for Recorder {
             .map(|label| KeyValue::new(label.key().to_owned(), label.value().to_owned()))
             .collect();
 
-        Gauge::from_arc(Arc::new(WrappedGauge { gauge, labels }))
+        Gauge::from_arc(Arc::new(WrappedGauge {
+            gauge,
+            labels,
+            value: AtomicU64::new(0),
+        }))
     }
 
     fn register_histogram(&self, key: &Key, _metadata: &Metadata<'_>) -> Histogram {
@@ -171,29 +186,61 @@ impl metrics::Recorder for Recorder {
 struct WrappedCounter {
     counter: opentelemetry::metrics::Counter<u64>,
     labels: Vec<KeyValue>,
+    value: AtomicU64,
 }
 
 impl CounterFn for WrappedCounter {
     fn increment(&self, value: u64) {
+        self.value.fetch_add(value, Ordering::Relaxed);
         self.counter.add(value, &self.labels);
     }
 
-    fn absolute(&self, _value: u64) {}
+    fn absolute(&self, value: u64) {
+        let prev = self.value.swap(value, Ordering::Relaxed);
+        let diff = value.saturating_sub(prev);
+        self.counter.add(diff, &self.labels);
+    }
 }
 
 struct WrappedGauge {
     gauge: opentelemetry::metrics::Gauge<f64>,
     labels: Vec<KeyValue>,
+    value: AtomicU64,
 }
 
 impl GaugeFn for WrappedGauge {
     fn set(&self, value: f64) {
+        self.value.store(value.to_bits(), Ordering::Relaxed);
         self.gauge.record(value, &self.labels);
     }
 
-    fn decrement(&self, _value: f64) {}
+    fn decrement(&self, value: f64) {
+        let mut current = self.value.load(Ordering::Relaxed);
+        let mut new = f64::from_bits(current) - value;
+        while let Err(val) = self
+            .value
+            .compare_exchange(current, new.to_bits(), Ordering::AcqRel, Ordering::Relaxed)
+        {
+            current = val;
+            new = f64::from_bits(current) - value;
+        }
 
-    fn increment(&self, _value: f64) {}
+        self.gauge.record(new, &self.labels);
+    }
+
+    fn increment(&self, value: f64) {
+        let mut current = self.value.load(Ordering::Relaxed);
+        let mut new = f64::from_bits(current) + value;
+        while let Err(val) = self
+            .value
+            .compare_exchange(current, new.to_bits(), Ordering::AcqRel, Ordering::Relaxed)
+        {
+            current = val;
+            new = f64::from_bits(current) + value;
+        }
+
+        self.gauge.record(new, &self.labels);
+    }
 }
 
 struct WrappedHistogram {
@@ -206,7 +253,11 @@ impl HistogramFn for WrappedHistogram {
         self.histogram.record(value, &self.labels);
     }
 
-    fn record_many(&self, _value: f64, _count: usize) {}
+    fn record_many(&self, value: f64, count: usize) {
+        for _ in 0..count {
+            self.histogram.record(value, &self.labels);
+        }
+    }
 }
 
 #[cfg(test)]
