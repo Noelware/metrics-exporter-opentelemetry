@@ -33,7 +33,7 @@ authors = ["Noel Towa <cutie@floofy.dev>"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(noeldoc)'] }
 
 [dependencies]
-derive_more = { version = "2.0.0", features = ["display", "from"] }
+derive_more = { version = "2.0.1", features = ["display", "from"] }
 metrics = "0.24.2"
 opentelemetry = { version = "0.31.0", default-features = false, features = [
     "metrics",
