@@ -3,9 +3,6 @@
 
 The **metrics-exporter-opentelemetry** crate is a [`metrics`] exporter over OpenTelemetry's **metrics** API.
 
-## Warnings
-- The crate provide no-op implementations of the `metrics::Recorder::describe_*` as we can't modify a constructed counter/gauge/histogram from `metrics::Recorder::register_*`. The SDK keeps track of it but is internal and isn't able to be accessed.
-
 ## Usage
 ```rust
 // Cargo.toml:

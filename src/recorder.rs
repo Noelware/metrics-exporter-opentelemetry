@@ -21,17 +21,17 @@
 
 use metrics::{Counter, CounterFn, Gauge, GaugeFn, Histogram, HistogramFn, Key, KeyName, Metadata, SharedString, Unit};
 use opentelemetry::{
-    global,
-    metrics::{Meter, MeterProvider},
-    InstrumentationScope, InstrumentationScopeBuilder, KeyValue,
+    global, metrics::{Meter, MeterProvider}, InstrumentationScope, InstrumentationScopeBuilder,
+    KeyValue,
 };
 use opentelemetry_sdk::metrics::{MeterProviderBuilder, SdkMeterProvider};
 use std::{
     borrow::Cow,
+    collections::HashMap,
     ops::Deref,
     sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
+        atomic::{AtomicU64, Ordering}, Arc,
+        Mutex,
     },
 };
 
@@ -44,7 +44,7 @@ pub struct Builder {
 
 impl Builder {
     /// Runs the closure (`f`) to modify the [`MeterProviderBuilder`] to build a
-    /// [`MeterProvider`](opentelemetry::metrics::MeterProvider).
+    /// [`MeterProvider`](MeterProvider).
     pub fn with_meter_provider(mut self, f: impl FnOnce(MeterProviderBuilder) -> MeterProviderBuilder) -> Self {
         self.builder = f(self.builder);
         self
@@ -68,12 +68,15 @@ impl Builder {
     ///
     /// This will not install the recorder as the global recorder for
     /// the [`metrics`] crate, use [`Builder::install`]. This will not install a meter
-    /// provider to [`opentelemetry::global`], use [`Builder::install_global`].
+    /// provider to [`global`], use [`Builder::install_global`].
     pub fn build(self) -> (SdkMeterProvider, Recorder) {
         let provider = self.builder.build();
         let meter = provider.meter_with_scope(self.scope.build());
 
-        (provider, Recorder { meter })
+        (provider, Recorder {
+            meter,
+            metrics_metadata: Arc::new(Mutex::new(HashMap::new())),
+        })
     }
 
     /// Builds a [`Recorder`] and sets it as the global recorder for the [`metrics`]
@@ -99,6 +102,12 @@ impl Builder {
     }
 }
 
+#[derive(Debug)]
+struct MetricMetadata {
+    unit: Option<Unit>,
+    description: SharedString,
+}
+
 /// A standard recorder that implements [`metrics::Recorder`].
 ///
 /// This instance implements <code>[`Deref`]\<Target = [`Meter`]\></code>, so
@@ -106,6 +115,7 @@ impl Builder {
 #[derive(Debug, Clone)]
 pub struct Recorder {
     meter: Meter,
+    metrics_metadata: Arc<Mutex<HashMap<KeyName, MetricMetadata>>>,
 }
 
 impl Recorder {
@@ -119,7 +129,10 @@ impl Recorder {
 
     /// Creates a [`Recorder`] with an already established [`Meter`].
     pub fn with_meter(meter: Meter) -> Self {
-        Recorder { meter }
+        Recorder {
+            meter,
+            metrics_metadata: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 }
 
@@ -132,20 +145,31 @@ impl Deref for Recorder {
 }
 
 impl metrics::Recorder for Recorder {
-    fn describe_counter(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {
-        // TODO(@auguwu): is there any way we can support this?
+    fn describe_counter(&self, key: KeyName, unit: Option<Unit>, description: SharedString) {
+        let mut metrics_metadata = self.metrics_metadata.lock().unwrap();
+        metrics_metadata.insert(key, MetricMetadata { unit, description });
     }
 
-    fn describe_gauge(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {
-        // TODO(@auguwu): is there any way we can support this?
+    fn describe_gauge(&self, key: KeyName, unit: Option<Unit>, description: SharedString) {
+        let mut metrics_metadata = self.metrics_metadata.lock().unwrap();
+        metrics_metadata.insert(key, MetricMetadata { unit, description });
     }
 
-    fn describe_histogram(&self, _key: KeyName, _unit: Option<Unit>, _description: SharedString) {
-        // TODO(@auguwu): is there any way we can support this?
+    fn describe_histogram(&self, key: KeyName, unit: Option<Unit>, description: SharedString) {
+        let mut metrics_metadata = self.metrics_metadata.lock().unwrap();
+        metrics_metadata.insert(key, MetricMetadata { unit, description });
     }
 
     fn register_counter(&self, key: &Key, _metadata: &Metadata<'_>) -> Counter {
-        let counter = self.meter.u64_counter(key.name().to_owned()).build();
+        let mut builder = self.meter.u64_counter(key.name().to_owned());
+        if let Some(metadata) = self.metrics_metadata.lock().unwrap().remove(key.name()) {
+            if let Some(unit) = metadata.unit {
+                builder = builder.with_unit(unit.as_canonical_label());
+            }
+            builder = builder.with_description(metadata.description.to_string());
+        }
+
+        let counter = builder.build();
         let labels = key
             .labels()
             .map(|label| KeyValue::new(label.key().to_owned(), label.value().to_owned()))
@@ -159,7 +183,15 @@ impl metrics::Recorder for Recorder {
     }
 
     fn register_gauge(&self, key: &Key, _metadata: &Metadata<'_>) -> Gauge {
-        let gauge = self.meter.f64_gauge(key.name().to_owned()).build();
+        let mut builder = self.meter.f64_gauge(key.name().to_owned());
+        if let Some(metadata) = self.metrics_metadata.lock().unwrap().remove(key.name()) {
+            if let Some(unit) = metadata.unit {
+                builder = builder.with_unit(unit.as_canonical_label());
+            }
+            builder = builder.with_description(metadata.description.to_string());
+        }
+
+        let gauge = builder.build();
         let labels = key
             .labels()
             .map(|label| KeyValue::new(label.key().to_owned(), label.value().to_owned()))
@@ -173,7 +205,15 @@ impl metrics::Recorder for Recorder {
     }
 
     fn register_histogram(&self, key: &Key, _metadata: &Metadata<'_>) -> Histogram {
-        let histogram = self.meter.f64_histogram(key.name().to_owned()).build();
+        let mut builder = self.meter.f64_histogram(key.name().to_owned());
+        if let Some(metadata) = self.metrics_metadata.lock().unwrap().remove(key.name()) {
+            if let Some(unit) = metadata.unit {
+                builder = builder.with_unit(unit.as_canonical_label());
+            }
+            builder = builder.with_description(metadata.description.to_string());
+        }
+
+        let histogram = builder.build();
         let labels = key
             .labels()
             .map(|label| KeyValue::new(label.key().to_owned(), label.value().to_owned()))
@@ -209,9 +249,18 @@ struct WrappedGauge {
 }
 
 impl GaugeFn for WrappedGauge {
-    fn set(&self, value: f64) {
-        self.value.store(value.to_bits(), Ordering::Relaxed);
-        self.gauge.record(value, &self.labels);
+    fn increment(&self, value: f64) {
+        let mut current = self.value.load(Ordering::Relaxed);
+        let mut new = f64::from_bits(current) + value;
+        while let Err(val) = self
+            .value
+            .compare_exchange(current, new.to_bits(), Ordering::AcqRel, Ordering::Relaxed)
+        {
+            current = val;
+            new = f64::from_bits(current) + value;
+        }
+
+        self.gauge.record(new, &self.labels);
     }
 
     fn decrement(&self, value: f64) {
@@ -228,18 +277,9 @@ impl GaugeFn for WrappedGauge {
         self.gauge.record(new, &self.labels);
     }
 
-    fn increment(&self, value: f64) {
-        let mut current = self.value.load(Ordering::Relaxed);
-        let mut new = f64::from_bits(current) + value;
-        while let Err(val) = self
-            .value
-            .compare_exchange(current, new.to_bits(), Ordering::AcqRel, Ordering::Relaxed)
-        {
-            current = val;
-            new = f64::from_bits(current) + value;
-        }
-
-        self.gauge.record(new, &self.labels);
+    fn set(&self, value: f64) {
+        self.value.store(value.to_bits(), Ordering::Relaxed);
+        self.gauge.record(value, &self.labels);
     }
 }
 
