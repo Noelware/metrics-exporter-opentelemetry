@@ -1,0 +1,18 @@
+// This is the Renovate configuration for this project.
+//
+// Visit https://github.com/Noelware/.github/blob/master/default.json for the Renovate configuration
+// for all repositories.
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "github>Noelware/.github:default.jsonc"
+    ],
+    "packageRules": [
+        {
+            "description": "Only bump Nightly Rust every 6 months",
+            "matchManagers": ["rust-toolchain"],
+            "matchCurrentValue": "/^nightly/",
+            "schedule": ["* * 1 1,7 *"]
+        }
+    ]
+}
