@@ -22,7 +22,7 @@
 [package]
 name = "metrics-exporter-opentelemetry"
 description = "🐻‍❄️🎈 A `metrics` exporter over OpenTelemetry"
-version = "0.2.1"
+version = "0.2.2"
 repository = "https://github.com/Noelware/metrics-exporter-opentelemetry"
 license = "MIT"
 edition = "2024"
