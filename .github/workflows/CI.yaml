@@ -58,13 +58,13 @@ jobs:
                 rust-version: [stable, nightly]
                 runner: [ubuntu-latest, windows-latest, macos-latest]
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
             - run: rm rust-toolchain.toml
-            - uses: dtolnay/rust-toolchain@master
+            - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
               with:
                 toolchain: ${{matrix.rust-version}}
                 components: clippy, rustfmt
-            - uses: Swatinem/rust-cache@v2
+            - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
             - uses: taiki-e/install-action@cargo-nextest
               with:
                 tool: cargo-nextest
@@ -76,13 +76,13 @@ jobs:
         name: Clippy
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v7
-            - uses: dtolnay/rust-toolchain@stable
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+            - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
               with:
                 components: clippy, rustfmt
 
-            - uses: Swatinem/rust-cache@v2
-            - uses: auguwu/clippy-action@1.5.0
+            - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+            - uses: auguwu/clippy-action@9817d076b82df0194935be9db6154c56ac07b317 # 1.5.0
               with:
                 all-features: true
                 token: ${{secrets.GITHUB_TOKEN}}
@@ -90,7 +90,7 @@ jobs:
         name: '`cargo deny`'
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
             - uses: taiki-e/install-action@cargo-deny
               with:
                   tool: cargo-deny
@@ -100,7 +100,7 @@ jobs:
         name: Report Missing Dependencies
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
             - uses: taiki-e/install-action@cargo-machete
               with:
                   tool: cargo-machete
